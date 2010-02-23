@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project default="jar" name="bcelgui" basedir=".">
+  <!-- -->
+  <property name="build.classes.dir" value="build/classes"/>
+  <property name="build.lib.dir" value="build/lib"/>
+  <property name="build.src.dir" value="build/src"/>
+  <property name="jar.name" value="bcelgui.jar"/>
+  <property name="package.dir" value="org/mightyfrog/util/bcelgui"/>
+  <property name="package.name" value="org.mightyfrog.util.bcelgui"/>
+
+  <!-- -->
+  <path id="classpath">
+    <pathelement location="./lib/bcel-5.2.jar"/>
+    <pathelement location="${build.classes.dir}/"/>
+    <pathelement location="${build.lib.dir}/"/>
+  </path>
+
+  <!-- -->
+  <target name="versioning">
+    <!--<buildnumber/>-->
+    <mkdir dir="${build.src.dir}"/>
+    <tstamp>
+      <format property="timestamp" pattern="MMddyyyykk"/>
+    </tstamp>
+    <copy todir="${build.src.dir}">
+      <fileset dir="./src">
+        <include name="**/*.java"/>
+      </fileset> 
+      <filterset>
+        <!--<filter token="TIMESTAMP" value="${timestamp}-${build.number}"/>-->
+        <filter token="TIMESTAMP" value="${timestamp}"/>
+      </filterset>
+    </copy>
+  </target>
+
+  <!-- -->
+  <target name="jar" description="o Create the jar">
+    <antcall target="versioning"/>
+    <copy todir="${build.classes.dir}">
+      <fileset dir="./properties"/>
+    </copy>
+    <copy todir="${build.classes.dir}/${package.dir}">
+      <fileset file="*.png"/>
+    </copy>
+    <mkdir dir="${build.classes.dir}"/>
+    <javac srcdir="${build.src.dir}" destdir="${build.classes.dir}" deprecation="true" debug="true" classpathref="classpath">
+      <compilerarg value="-Xlint:unchecked"/>
+      <include name="${package.dir}/**/*.java"/>
+    </javac>
+
+    <mkdir dir="${build.lib.dir}"/>
+    <jar manifest="./manifest.mf" jarfile="${build.lib.dir}/${jar.name}" basedir="${build.classes.dir}">
+      <include name="${package.dir}/**/**"/>
+      <include name="i18n.properties"/>
+      <include name="i18n_ja.properties"/>
+    </jar>
+  </target>
+
+  <!-- -->
+  <target name="clean">
+    <delete dir="${build.classes.dir}" verbose="true"/>
+    <delete dir="${build.lib.dir}" verbose="true"/>
+    <delete dir="${build.src.dir}" verbose="true"/>
+  </target>
+
+  <!-- -->
+  <target name="run" depends="jar">
+    <java fork="true" classpathref="classpath" classpath="${build.lib.dir}/${jar.name}" classname="${package.name}.BcelGui">
+    </java>
+  </target>
+
+  <target name="test" depends="jar">
+    <java fork="true" classpath="build/lib/${jar.name}" classname="${package.name}.BcelGui$RepaintTest">
+      <jvmarg value="-esa"/>
+    </java>
+  </target>
+
+  <!-- -->
+  <target name="obfuscate" depends="jar">
+    <taskdef name="yguard" classname="com.yworks.yguard.YGuardTask" classpath="${lib.dir}/yguard.jar"/>
+    <property name="srcDir" value="./src"/>
+    <property name="classDir" value="${build.classes.dir}"/>
+    <property name="jar" value="${jar_name}"/>
+    <property name="obfjar" value="bcelgui_obf.jar"/>
+    <property name="mainclass" value="${package.name}.BcelGui"/>
+    <property name="renamelog" value="./build/bcelgui_renamelog.xml"/>
+    <property name="shrinklog" value="./build/bcelgui_shrinklog.xml"/>
+    <yguard>
+      <inoutpair in="${build.lib.dir}/${jar.name}" out="${build.lib.dir}/${obfjar}"/>
+      <!--
+      <externalclasses>
+        <pathelement location="./lib/bcel-5.2.jar"/>
+      </externalclasses>
+      -->
+      <shrink logfile="${shrinklog}">
+        <keep>
+          <class classes="protected" methods="protected" fields="protected">
+            <patternset>
+              <include name="${package.name}.*"/>
+            </patternset>
+          </class>
+        </keep>
+      </shrink>
+      <rename conservemanifest="true" mainclass="${mainclass}" logfile="${renamelog}">
+        <property name="error-checking" value="pedantic"/>
+        <keep>
+          <class classes="protected" methods="protected" fields="protected">
+            <patternset>
+              <include name="${package.name}.*"/>
+            </patternset>
+          </class>
+        </keep>
+      </rename>
+    </yguard>
+  </target>
+</project>
